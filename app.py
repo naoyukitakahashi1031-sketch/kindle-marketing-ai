@@ -10,6 +10,7 @@ import pandas as pd
 import streamlit as st
 
 from kma.core import read_csv, summarize, breakdown, proposals, safe_csv
+from kma.claude_client import build_request, extract_text
 
 JST = ZoneInfo("Asia/Tokyo")
 st.set_page_config(page_title="Kindle Marketing AI", page_icon="📚", layout="wide")
@@ -156,13 +157,13 @@ with ai_tab:
         with st.spinner("Claudeに分析を依頼しています。完了までお待ちください..."):
             try:
                 from anthropic import Anthropic
-                result=Anthropic(api_key=api_key,timeout=30).messages.create(
-                    model=model,max_tokens=1200,
+                result=Anthropic(api_key=api_key,timeout=45).messages.create(**build_request(
+                    model=model,max_tokens=2500,
                     system="日本のKindle広告の分析担当。入力データだけを事実とし、数字を創作しない。広告売上と印税の違い、直近14日の売上反映遅延に注意。広告設定は変更しない。日本語で優先順位と理由を示す。",
-                    messages=[{"role":"user","content":json.dumps(payload,ensure_ascii=False)}])
-                st.session_state.analysis="\n".join(x.text for x in result.content if x.type=="text").strip()
-                if not st.session_state.analysis:
-                    st.session_state.claude_error="API処理は完了しましたが、表示できる回答が空でした。"
+                    prompt=json.dumps(payload,ensure_ascii=False)))
+                st.session_state.analysis=extract_text(result)
+            except ValueError as e:
+                st.session_state.claude_error=str(e)
             except Exception as e:
                 code=getattr(e,"status_code",None)
                 hints={400:"リクエスト設定",401:"APIキー",402:"API請求・残高",403:"アクセス権限",404:"モデル名・利用権限",429:"利用上限・API残高",529:"Anthropicの混雑"}
@@ -180,11 +181,11 @@ with ai_tab:
     if st.button("X投稿案を3本生成",disabled=not(api_key and agree)):
         try:
             from anthropic import Anthropic
-            result=Anthropic(api_key=api_key,timeout=30).messages.create(
-                model=model,max_tokens=700,
+            result=Anthropic(api_key=api_key,timeout=45).messages.create(**build_request(
+                model=model,max_tokens=1500,
                 system="高城直人の日本語X投稿編集者。YouTube登録者6万人の経験を紹介し、大人の副業・動画制作者に向けて自然な告知を作る。誇大な表現や架空の購入者・売上を作らない。投稿は手動。",
-                messages=[{"role":"user","content":f"書籍：{book[:150]}。確認済み販売条件：{memo[:500]}。140文字以内で体験談・実務Tips・短いシュール系の3案"}])
-            st.session_state.posts="\n".join(x.text for x in result.content if x.type=="text")
+                prompt=f"書籍：{book[:150]}。確認済み販売条件：{memo[:500]}。140文字以内で体験談・実務Tips・短いシュール系の3案"))
+            st.session_state.posts=extract_text(result)
         except Exception as e:
             st.error(f"生成できませんでした：{type(e).__name__}")
     if st.session_state.get("posts"):
