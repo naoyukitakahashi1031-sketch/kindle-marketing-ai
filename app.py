@@ -144,21 +144,35 @@ with ai_tab:
     model=str(setting("ANTHROPIC_MODEL","claude-sonnet-5-5"))
     if not api_key:
         st.info("Claude未接続。Streamlit SecretsにANTHROPIC_API_KEYを設定すると分析が利用できます。")
+    else:
+        st.caption(f"🔑 Claude APIキー：設定済み（値は表示しません）｜モデル：{model}")
     agree=st.checkbox("今回の分析データがAnthropicへ送信され、API料金が発生し得ることに同意する")
     payload={"book":book[:150],"objective":objective,"metrics":summary,"candidates":actions[:20]}
     with st.expander("AIへ送信する内容"):
         st.json(payload)
     if st.button("広告改善をClaudeで分析",disabled=not(api_key and agree)):
-        try:
-            from anthropic import Anthropic
-            result=Anthropic(api_key=api_key,timeout=30).messages.create(
-                model=model,max_tokens=1200,
-                system="日本のKindle広告の分析担当。入力データだけを事実とし、数字を創作しない。広告売上と印税の違い、直近14日の売上反映遅延に注意。広告設定は変更しない。日本語で優先順位と理由を示す。",
-                messages=[{"role":"user","content":json.dumps(payload,ensure_ascii=False)}])
-            st.session_state.analysis="\n".join(x.text for x in result.content if x.type=="text")
-        except Exception as e:
-            st.error(f"Claude呼び出し失敗：{type(e).__name__}。モデル名・権限・API残高をご確認ください。")
+        st.session_state.pop("analysis",None)
+        st.session_state.pop("claude_error",None)
+        with st.spinner("Claudeに分析を依頼しています。完了までお待ちください..."):
+            try:
+                from anthropic import Anthropic
+                result=Anthropic(api_key=api_key,timeout=30).messages.create(
+                    model=model,max_tokens=1200,
+                    system="日本のKindle広告の分析担当。入力データだけを事実とし、数字を創作しない。広告売上と印税の違い、直近14日の売上反映遅延に注意。広告設定は変更しない。日本語で優先順位と理由を示す。",
+                    messages=[{"role":"user","content":json.dumps(payload,ensure_ascii=False)}])
+                st.session_state.analysis="\n".join(x.text for x in result.content if x.type=="text").strip()
+                if not st.session_state.analysis:
+                    st.session_state.claude_error="API処理は完了しましたが、表示できる回答が空でした。"
+            except Exception as e:
+                code=getattr(e,"status_code",None)
+                hints={400:"リクエスト設定",401:"APIキー",402:"API請求・残高",403:"アクセス権限",404:"モデル名・利用権限",429:"利用上限・API残高",529:"Anthropicの混雑"}
+                hint=hints.get(code,"通信・API設定")
+                st.session_state.claude_error=f"{type(e).__name__}／HTTP {code if code else 'なし'}。{hint}を確認してください。"
+    if st.session_state.get("claude_error"):
+        st.error("Claudeの分析が完了していません："+st.session_state.claude_error)
+        st.caption("エラー表示にAPIキーなどの秘密情報は含めていません。秘密情報はチャットに送らないでください。")
     if st.session_state.get("analysis"):
+        st.success("✅ Claudeの分析結果を受信しました。")
         st.markdown(st.session_state.analysis)
         st.download_button("分析文を保存",st.session_state.analysis,file_name="kindle_ai_report.txt")
     st.divider()
