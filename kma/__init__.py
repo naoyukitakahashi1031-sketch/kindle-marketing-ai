@@ -1,0 +1,1 @@
+"""Kindle Marketing AI: read-only Amazon Ads analytics."""
