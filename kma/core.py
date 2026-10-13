@@ -136,7 +136,7 @@ def proposals(df: pd.DataFrame, scope: str, royalty: float, settled: bool) -> li
 def safe_csv(df: pd.DataFrame) -> bytes:
     """Prevent spreadsheet formula execution when opening exported CSVs."""
     result = df.copy()
-    for field in result.select_dtypes(include=["object","str"]).columns:
+    for field in result.select_dtypes(include=["object"]).columns:
         result[field] = result[field].apply(
             lambda v: "'"+v if isinstance(v,str) and v.lstrip().startswith(("=","+","-","@")) else v
         )
