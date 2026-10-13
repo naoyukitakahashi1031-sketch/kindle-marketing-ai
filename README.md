@@ -16,18 +16,18 @@
 
 1. [share.streamlit.io](https://share.streamlit.io/) をSafariで開き、GitHubでログイン
 2. **Create app → Deploy a public app from GitHub** を選択
-3. Repository: \`naoyukitakahashi1031-sketch/kindle-marketing-ai\` 、Branch: \`main\`、Main file path: \`app.py\`
+3. Repository: `naoyukitakahashi1031-sketch/kindle-marketing-ai` 、Branch: `main`、Main file path: `app.py`
 4. **Advanced settings / Secrets** に、秘密の長いパスワードを指定：
-   \`\`\`toml
+   ```toml
    APP_PASSWORD = "ここを推測されにくい固有のパスワードに変更"
-   \`\`\`
+   ```
 5. Deploy。発行された新しいURLはX Reply Assistantとは異なります。Safariからホーム画面に追加できます。
 
 Private repositoryを使用しています。Streamlit側に当該リポジトリの参照権限が必要です。接続できないときは、StreamlitのGitHub権限を確認してください。APIキーやパスワードはGitHubファイルには絶対記入しないでください。**APP_PASSWORDが未設定ならアプリはロックされます。**
 
 ### Claude AI（任意・有料）
 
-Anthropic ConsoleでAPIキーを取得してStreamlit Secretsに \`ANTHROPIC_API_KEY\` を追加します。API費用はAnthropic側で上限を管理。既存のXアプリとは別のSecretsで設定し、共有しません。
+Anthropic ConsoleでAPIキーを取得してStreamlit Secretsに `ANTHROPIC_API_KEY` を追加します。API費用はAnthropic側で上限を管理。既存のXアプリとは別のSecretsで設定し、共有しません。
 
 ### CSVの扱い
 
@@ -45,8 +45,8 @@ Amazon Ads APIの認可を受けた後、OAuth、日次レポート取得、書�
 
 ## 開発
 
-\`\`\`bash
+```bash
 pip install -r requirements-dev.txt
 pytest -q
 streamlit run app.py
-\`\`\`
+```
